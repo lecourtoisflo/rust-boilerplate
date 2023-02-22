@@ -11,8 +11,9 @@ pub trait TaskDefinition: 'static {
     fn terminate(&mut self);
 }
 
-type TaskMutex = Arc<Mutex<bool>>;
 type TaskHandle = JoinHandle<()>;
+type SafeSyncPtr<T> = Arc<Mutex<T>>;
+type TaskMutex = SafeSyncPtr<bool>;
 
 pub struct RunningTask {
     handle_: TaskHandle,
@@ -21,14 +22,6 @@ pub struct RunningTask {
 }
 
 impl RunningTask {
-    fn new(handle: TaskHandle, name: String, stopped_requested: TaskMutex) -> RunningTask {
-        RunningTask {
-            handle_: handle,
-            name_: name,
-            stopped_requested_: stopped_requested,
-        }
-    }
-
     pub fn stop(self) {
         if let Ok(mut stopped_requested) = self.stopped_requested_.lock() {
             *stopped_requested = true;
@@ -47,11 +40,11 @@ where
     timeout_: Duration,
     name_: String,
     stopped_requested_: TaskMutex,
-    task_definition_: Mutex<T>,
+    task_definition_: SafeSyncPtr<T>,
 }
 
 impl<T: TaskDefinition + std::marker::Send> Task<T> {
-    fn new(dur: Duration, name: String, def: Mutex<T>) -> Task<T> {
+    fn new(dur: Duration, name: String, def: SafeSyncPtr<T>) -> Task<T> {
         Task {
             timeout_: dur,
             name_: name,
@@ -60,9 +53,9 @@ impl<T: TaskDefinition + std::marker::Send> Task<T> {
         }
     }
 
-    pub fn start(duration: Duration, name: String, def: T) -> RunningTask {
+    pub fn start(duration: Duration, name: String, def: &SafeSyncPtr<T>) -> RunningTask {
         let task_name = name.clone();
-        let new_task = Task::new(duration, name, Mutex::new(def));
+        let new_task = Task::new(duration, name, Arc::clone(def));
         let stopped_requested_attr = new_task.stopped_requested_.clone();
         let handle = thread::spawn(move || new_task.thread_run());
         RunningTask {
@@ -85,7 +78,7 @@ impl<T: TaskDefinition + std::marker::Send> Task<T> {
             // custom run
             if let Err(error) = runner.lock().unwrap().run() {
                 println!("Fail to run {}: {}", &self.name_, &error);
-                return;
+                break;
             }
 
             thread::sleep(self.timeout_);
