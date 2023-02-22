@@ -5,11 +5,10 @@ use std::time::Duration;
 
 // Public interface
 
-#[derive(Debug)]
-pub struct TaskDefinition {
-    init: fn() -> Result<(), String>,
-    run: fn() -> Result<(), String>,
-    terminate: fn() -> Result<(), String>,
+pub trait TaskDefinition: 'static {
+    fn init(&mut self) -> Result<(), String>;
+    fn run(&mut self) -> Result<(), String>;
+    fn terminate(&mut self);
 }
 
 type TaskMutex = Arc<Mutex<bool>>;
@@ -41,15 +40,18 @@ impl RunningTask {
 }
 
 #[derive(Debug)]
-pub struct Task {
+pub struct Task<T>
+where
+    T: TaskDefinition,
+{
     timeout_: Duration,
     name_: String,
     stopped_requested_: TaskMutex,
-    task_definition_: TaskDefinition,
+    task_definition_: Mutex<T>,
 }
 
-impl Task {
-    fn new(dur: Duration, name: String, def: TaskDefinition) -> Task {
+impl<T: TaskDefinition + std::marker::Send> Task<T> {
+    fn new(dur: Duration, name: String, def: Mutex<T>) -> Task<T> {
         Task {
             timeout_: dur,
             name_: name,
@@ -58,9 +60,9 @@ impl Task {
         }
     }
 
-    pub fn start(duration: Duration, name: String, def: TaskDefinition) -> RunningTask {
+    pub fn start(duration: Duration, name: String, def: T) -> RunningTask {
         let task_name = name.clone();
-        let new_task = Task::new(duration, name, def);
+        let new_task = Task::new(duration, name, Mutex::new(def));
         let stopped_requested_attr = new_task.stopped_requested_.clone();
         let handle = thread::spawn(move || new_task.thread_run());
         RunningTask {
@@ -74,14 +76,14 @@ impl Task {
         let runner = self.task_definition_;
 
         // custom init task
-        if let Err(error) = (runner.init)() {
+        if let Err(error) = runner.lock().unwrap().init() {
             println!("Fail to init {}: {}", &self.name_, &error);
             return;
         }
 
         loop {
             // custom run
-            if let Err(error) = (runner.run)() {
+            if let Err(error) = runner.lock().unwrap().run() {
                 println!("Fail to run {}: {}", &self.name_, &error);
                 return;
             }
@@ -96,9 +98,6 @@ impl Task {
         }
 
         // custom terminate
-        if let Err(error) = (runner.terminate)() {
-            println!("Fail to run {}: {}", &self.name_, &error);
-            return;
-        };
+        runner.lock().unwrap().terminate();
     }
 }
