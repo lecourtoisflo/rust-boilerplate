@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
     use std::thread::sleep;
     use std::time::Duration;
-    use task::{Task, TaskDefinition};
+    use task::{build_safe_sync_ptr, Task, TaskDefinition};
 
     struct TestTask {
         pub init_ok: bool,
@@ -43,7 +42,7 @@ mod tests {
 
     #[test]
     fn nominal() {
-        let testtask_ptr = Arc::new(Mutex::new(TestTask::new(true, 1)));
+        let testtask_ptr = build_safe_sync_ptr(TestTask::new(true, 1));
         let running_task = Task::start(
             Duration::from_secs(1),
             String::from("nominal"),

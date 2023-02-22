@@ -5,6 +5,7 @@ use std::time::Duration;
 
 // Public interface
 
+/// Task definition trait
 pub trait TaskDefinition: 'static {
     fn init(&mut self) -> Result<(), String>;
     fn run(&mut self) -> Result<(), String>;
@@ -13,12 +14,16 @@ pub trait TaskDefinition: 'static {
 
 type TaskHandle = JoinHandle<()>;
 type SafeSyncPtr<T> = Arc<Mutex<T>>;
-type TaskMutex = SafeSyncPtr<bool>;
 
+pub fn build_safe_sync_ptr<T>(item: T) -> SafeSyncPtr<T> {
+    Arc::new(Mutex::new(item))
+}
+
+/// Running task, enabling the user to control the scheduling of the task
 pub struct RunningTask {
     handle_: TaskHandle,
     name_: String,
-    stopped_requested_: TaskMutex,
+    stopped_requested_: SafeSyncPtr<bool>,
 }
 
 impl RunningTask {
@@ -32,6 +37,9 @@ impl RunningTask {
     }
 }
 
+/// Task class
+///
+/// The Task class aims to embbed a thread-based periodic task
 #[derive(Debug)]
 pub struct Task<T>
 where
@@ -39,7 +47,7 @@ where
 {
     timeout_: Duration,
     name_: String,
-    stopped_requested_: TaskMutex,
+    stopped_requested_: SafeSyncPtr<bool>,
     task_definition_: SafeSyncPtr<T>,
 }
 
@@ -48,7 +56,7 @@ impl<T: TaskDefinition + std::marker::Send> Task<T> {
         Task {
             timeout_: dur,
             name_: name,
-            stopped_requested_: Arc::new(Mutex::new(false)),
+            stopped_requested_: build_safe_sync_ptr(false),
             task_definition_: def,
         }
     }

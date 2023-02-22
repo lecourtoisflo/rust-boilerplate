@@ -2,7 +2,13 @@
 name = "boilerplate"
 version = "0.1.0"
 edition = "2021"
+homepage = "https://github.com/lecourtoisflo/rust-boilerplate"
+repository = "https://github.com/lecourtoisflo/rust-boilerplate"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [".", "task"]
+
 [dependencies]
+task = { path = "task" }
