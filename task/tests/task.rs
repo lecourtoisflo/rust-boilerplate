@@ -69,4 +69,19 @@ mod tests {
         assert_eq!(testtask.terminated, true);
         assert_eq!(testtask.run_counter, 2);
     }
+
+    #[test]
+    fn fail_init() {
+        let testtask_ptr = build_safe_sync_ptr(TestTask::new(false, 1));
+        let running_task = Task::start(
+            Duration::from_secs(1),
+            String::from("fail_init"),
+            &testtask_ptr,
+        );
+        sleep(Duration::from_secs(2));
+        running_task.stop();
+        let testtask = testtask_ptr.lock().unwrap();
+        assert_eq!(testtask.terminated, false);
+        assert_eq!(testtask.run_counter, 0);
+    }
 }
