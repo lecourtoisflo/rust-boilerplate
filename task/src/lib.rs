@@ -30,10 +30,13 @@ impl RunningTask {
     pub fn stop(self) {
         if let Ok(mut stopped_requested) = self.stopped_requested_.lock() {
             *stopped_requested = true;
-            self.handle_
-                .join()
-                .expect((String::from("Fail to join task") + &self.name_).as_str());
+        } else {
+            // Cannot take the lock of the mutex: do nothing
+            return;
         }
+        self.handle_
+            .join()
+            .expect((String::from("Fail to join task") + &self.name_).as_str());
     }
 }
 
