@@ -55,7 +55,7 @@ impl<T: TaskDefinition + std::marker::Send> Task<T> {
 
     pub fn start(duration: Duration, name: String, def: &SafeSyncPtr<T>) -> RunningTask {
         let task_name = name.clone();
-        let new_task = Task::new(duration, name, Arc::clone(def));
+        let new_task = Task::new(duration, name, Arc::clone(&def));
         let stopped_requested_attr = new_task.stopped_requested_.clone();
         let handle = thread::spawn(move || new_task.thread_run());
         RunningTask {
