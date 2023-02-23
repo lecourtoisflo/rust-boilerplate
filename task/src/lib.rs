@@ -105,3 +105,20 @@ impl<T: TaskDefinition + std::marker::Send> Task<T> {
         runner.lock().unwrap().terminate();
     }
 }
+
+// basic unit test
+#[cfg(test)]
+mod tests {
+    use crate::build_safe_sync_ptr;
+
+    #[test]
+    fn builder() {
+        // test that the builder works
+        let built = build_safe_sync_ptr(0);
+        if let Err(error) = built.lock() {
+            let data_error = error.get_ref();
+            println!("error: {data_error}");
+        }
+        drop(built); // explicit drop
+    }
+}
