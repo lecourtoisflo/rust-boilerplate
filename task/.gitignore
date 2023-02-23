@@ -1,0 +1,2 @@
+# Put cargo in gitignore as it is a library
+Cargo.lock
