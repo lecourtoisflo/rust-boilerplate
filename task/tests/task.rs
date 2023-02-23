@@ -67,7 +67,9 @@ mod tests {
         running_task.stop();
         let testtask = testtask_ptr.lock().unwrap();
         assert_eq!(testtask.terminated, true);
-        assert_eq!(testtask.run_counter, 2);
+        // due to timing, the counter can equal 2 ou 3
+        assert!(testtask.run_counter >= 2);
+        assert!(testtask.run_counter < 4);
     }
 
     #[test]
