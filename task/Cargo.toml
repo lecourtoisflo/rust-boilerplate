@@ -1,7 +1,7 @@
 [package]
 name = "task"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "Library to define a generic thread-based task class"
 homepage = "https://github.com/lecourtoisflo/rust-boilerplate"
 repository = "https://github.com/lecourtoisflo/rust-boilerplate"
