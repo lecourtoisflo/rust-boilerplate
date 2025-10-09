@@ -109,7 +109,7 @@ impl<T: TaskDefinition + std::marker::Send> Task<T> {
 // basic unit test
 #[cfg(test)]
 mod tests {
-    use crate::build_safe_sync_ptr;
+    use super::*;
 
     #[test]
     fn builder() {
